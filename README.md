@@ -201,3 +201,76 @@ http://<public_ip>:1337
 * `public_ip`: The public IP address of the EC2 instance 
 
 ---
+
+
+# Task 5
+
+Automate Strapi Deployment with GitHub Actions + Terraform
+ 
+Set up GitHub Actions workflows to:
+
+>Automatically build and push the Docker image on code push.
+
+>Trigger Terraform workflow manually to deploy the updated image on EC2.
+
+>Ensure EC2 instance uses SSH 
+
+>Verify deployment via public IP 
+
+
+Task Breakdown
+
+>>1. CI/CD - Code Pipeline
+
+    a) Set up .github/workflows/ci.yml to:
+
+    b) Run on push to main branch.
+
+    c) Build Docker image of Strapi.
+
+    d) Push to Docker Hub or ECR.
+
+    e) Save image tag as GitHub Action output.
+
+
+>>2. CD - Terraform Pipeline
+
+    a) Set up .github/workflows/terraform.yml to:
+
+    b) Be manually triggered (workflow_dispatch)
+
+    c) Run terraform init, plan, and apply
+
+    d) Use GitHub Secrets for AWS credentials
+
+    e) Use output image tag to pull and deploy container on EC2
+ 
+## Steps
+
+### 1) Create github actions YAML files
+#### ci.yml 
+To Build and Push Docker Image. This Workflow will trigger on code push on branch main of the repository.
+
+#### terraform.yml
+To Create resources and Deploy docker container using docker images pushed on dockerhub using previous workflow. This workflow will trigger manually.
+
+### 2) Store Secrets 
+Go to repository --> go to settings --> go to secrets and variables --> go to actions --> store secrets 
+
+For storing environment variables and secrets like access key ID and password
+
+
+### 3) Push code 
+
+ Push code to the github repository. It will trigger ci.yml file's workflow.
+``` git push origin main ```
+
+
+### 4) Trigger terraform.yml
+Go to repository --> go to actions --> search workflow name --> run workflow manually --> give image_tag of docker image as an input to workflow 
+
+This will create resources and deploy strapi container on EC2 using terraform
+
+
+
+
