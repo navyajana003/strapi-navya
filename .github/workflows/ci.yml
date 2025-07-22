@@ -26,7 +26,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/strapi-app-navya:latest ./strapi-app-navya
-          docker push ${{ secrets.DOCKER_PASSWORD }}/strapi-app-navya:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/strapi-app-navya:latest
 
       - name: Save latest tag as artifact
         run: |
