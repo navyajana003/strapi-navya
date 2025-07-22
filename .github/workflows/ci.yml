@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-      - Navya
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
