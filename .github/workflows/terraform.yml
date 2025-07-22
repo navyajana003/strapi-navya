@@ -13,49 +13,58 @@ jobs:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
-      # Checkout repo
+      # ✅ Checkout repo
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Set up Terraform
+      # ✅ Set up Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.0
 
-      # Terraform Init
+      # ✅ Terraform Init
       - name: Terraform Init
         run: terraform init
         working-directory: Terraform
-      # Terraform Plan
+
+      # ✅ Terraform Plan
       - name: Terraform Plan
         run: terraform plan
         working-directory: Terraform
-      # Terraform Apply
+
+      # ✅ Terraform Apply
       - name: Terraform Apply
         run: terraform apply -auto-approve
         working-directory: Terraform
 
+      # ✅ Get EC2 Public IP from Terraform output
       - name: Get EC2 Public IP from Terraform
         id: tf_output
+        env:
+          TF_LOG: "" # disable terraform debug logs
         run: |
           cd Terraform
-          EC2_IP=$(terraform output -raw strapi_public_ip)
+          EC2_IP=$(terraform output -raw strapi_public_ip | tr -d '\r')
           echo "ec2_ip=$EC2_IP" >> $GITHUB_OUTPUT
 
+      # ✅ Deploy container on EC2
       - name: Deploy container on EC2
         run: |
           IMAGE_TAG=${{ secrets.IMAGE_TAG }}
-          EC2_USER=ec2-user
+          EC2_USER=ubuntu
           EC2_HOST=${{ steps.tf_output.outputs.ec2_ip }}
           PEM_KEY="${{ secrets.EC2_SSH_KEY }}"
 
+          # Write PEM key to a file and set correct permissions
           echo "$PEM_KEY" > key.pem
           chmod 600 key.pem
 
+          # SSH into EC2 and deploy Docker container
           ssh -o StrictHostKeyChecking=no -i key.pem $EC2_USER@$EC2_HOST << EOF
-            docker pull mydockerhubuser/myapp:${IMAGE_TAG}
-            docker stop myapp || true
-            docker rm myapp || true
-            docker run -d --name myapp -p 80:80 mydockerhubuser/myapp:${IMAGE_TAG}
+            echo "Deploying image navyajana/strapi-app-navya:${IMAGE_TAG} on EC2 ${EC2_HOST}"
+            docker pull navyajana/strapi-app-navya:${IMAGE_TAG}
+            docker stop strapi-app-navya || true
+            docker rm strapi-app-navya || true
+            docker run -d --name strapi-app-navya -p 1337:1337 navyajana/strapi-app-navya:${IMAGE_TAG}
           EOF
