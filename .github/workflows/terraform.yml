@@ -26,34 +26,36 @@ jobs:
       # Terraform Init
       - name: Terraform Init
         run: terraform init
-
+        working-directory: Terraform
       # Terraform Plan
       - name: Terraform Plan
         run: terraform plan
-
+        working-directory: Terraform
       # Terraform Apply
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: Terraform
 
-      # Deploy Docker container on EC2
+      - name: Get EC2 Public IP from Terraform
+        id: tf_output
+        run: |
+          cd Terraform
+          EC2_IP=$(terraform output -raw strapi_public_ip)
+          echo "ec2_ip=$EC2_IP" >> $GITHUB_OUTPUT
+
       - name: Deploy container on EC2
         run: |
-          echo "Connecting to EC2 and deploying container..."
-          # Replace with your EC2 details
           IMAGE_TAG=${{ secrets.IMAGE_TAG }}
           EC2_USER=ec2-user
-          EC2_HOST=${{ secrets.EC2_HOST }}
-          PEM_KEY="${{ secrets.EC2_SSH_KEY }}" # store your PEM private key as a secret
+          EC2_HOST=${{ steps.tf_output.outputs.ec2_ip }}
+          PEM_KEY="${{ secrets.EC2_SSH_KEY }}"
 
-          # Write PEM key to a file and set permissions
           echo "$PEM_KEY" > key.pem
           chmod 600 key.pem
 
-          # SSH into EC2 and deploy container
           ssh -o StrictHostKeyChecking=no -i key.pem $EC2_USER@$EC2_HOST << EOF
-            echo "Pulling Docker image: mydockerhubuser/myapp:\$IMAGE_TAG"
-            docker pull mydockerhubuser/myapp:\$IMAGE_TAG
+            docker pull mydockerhubuser/myapp:${IMAGE_TAG}
             docker stop myapp || true
             docker rm myapp || true
-            docker run -d --name myapp -p 80:80 mydockerhubuser/myapp:\$IMAGE_TAG
+            docker run -d --name myapp -p 80:80 mydockerhubuser/myapp:${IMAGE_TAG}
           EOF
