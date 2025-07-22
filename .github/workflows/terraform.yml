@@ -1,66 +1,76 @@
-
-name: Deploy to AWS
+name: CD - Deploy to EC2
 
 on:
   workflow_dispatch:
-    inputs:
-        image_tag:
-          description: 'Docker image tag (e.g., strapi-20250722143000)'
-          required: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Set IMAGE_TAG from input
-        run: |
-          echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+      # ✅ Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Create .env file with all varabies
-        run: |
-          mkdir -p terraform/docks
-          {
-            echo "HOST=0.0.0.0"
-            echo "PORT=1337"
-            
-            echo "APP_KEYS=${{ secrets.APP_KEYS }}"
-            echo "API_TOKEN_SALT=${{ secrets.API_TOKEN_SALT }}"
-            echo "ADMIN_JWT_SECRET=${{ secrets.ADMIN_JWT_SECRET }}"
-            echo "TRANSFER_TOKEN_SALT=${{ secrets.TRANSFER_TOKEN_SALT }}"
-            echo "ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}"
-            
-            echo "DATABASE_CLIENT=postgres"
-            echo "DATABASE_HOST=postgres"
-            echo "DATABASE_PORT=5432"
-            echo "DATABASE_NAME=${{ secrets.DATABASE_NAME }}"
-            echo "DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }}"
-            echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}"
-            echo "DATABASE_SSL=false"
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
-            echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}"
-            echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
-          } > terraform/docks/.env
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
+      # ✅ Download the image-tag artifact from previous workflow
+      - name: Download image tag artifact
+        uses: actions/download-artifact@v4
         with:
-          terraform_version: 1.5.7
+          name: image-tag
+          path: ./artifact
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      # ✅ Read image tag into env var
+      - name: Read image tag
+        id: read_tag
+        run: |
+          IMAGE_TAG=$(cat ./artifact/image-tag.txt)
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      # ✅ Set up Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          terraform_version: 1.6.0
 
+      # ✅ Terraform Init
       - name: Terraform Init
-        run: cd terraform && terraform init
+        run: terraform init
+        working-directory: Terraform
 
-      - name: Terraform Plan
-        run: cd terraform && terraform plan
-
+      # ✅ Terraform Apply (creates or updates infrastructure)
       - name: Terraform Apply
-        run: cd terraform && terraform apply -auto-approve
+        run: terraform apply -auto-approve
+        working-directory: Terraform
+
+      # ✅ Get EC2 Public IP from Terraform output
+      - name: Get EC2 Public IP from Terraform
+        id: tf_output
+        env:
+          TF_LOG: ""
+        run: |
+          cd Terraform
+          EC2_IP=$(terraform output -raw strapi_public_ip | tr -d '\r')
+          echo "ec2_ip=$EC2_IP" >> $GITHUB_OUTPUT
+
+      # ✅ Deploy container on EC2
+      - name: Deploy container on EC2
+        run: |
+          EC2_USER=ubuntu
+          EC2_HOST=${{ steps.tf_output.outputs.ec2_ip }}
+          PEM_KEY="${{ secrets.EC2_SSH_KEY }}"
+
+          echo "$PEM_KEY" > key.pem
+          chmod 600 key.pem
+
+          ssh -o StrictHostKeyChecking=no -i key.pem $EC2_USER@$EC2_HOST << EOF
+            echo "Deploying image navyajana/strapi-app-navya:${IMAGE_TAG} on EC2 ${EC2_HOST}"
+            docker pull ${{ secrets.DOCKER_USERNAME }}/strapi-app-navya:${IMAGE_TAG}
+            docker stop strapi-app-navya || true
+            docker rm strapi-app-navya || true
+            docker run -d --name strapi-app-navya -p 1337:1337 ${{ secrets.DOCKER_USERNAME }}/strapi-app-navya:${IMAGE_TAG}
+          EOF
