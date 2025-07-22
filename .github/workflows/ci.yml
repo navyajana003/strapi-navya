@@ -27,8 +27,8 @@ jobs:
       # 🏗 Build and Push
       - name: Build and Push Docker image
         run: |
-          docker build -f ./my-strapi-project/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }} ./my-strapi-project
-          docker push ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}
+          docker build -f ./my-strapi-project/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/strapi-app-navya:${{ steps.vars.outputs.tag }} ./my-strapi-project
+          docker push ${{ secrets.DOCKER_USERNAME }}/strapi-app-navya:${{ steps.vars.outputs.tag }}
 
       # ✅ Output the tag for later workflows
       - name: Export image tag
