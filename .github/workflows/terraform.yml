@@ -6,60 +6,38 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
-      # ✅ Checkout repo
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v3
 
-      # ✅ Download the image-tag artifact from previous workflow
-      - name: Download image tag artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: image-tag
-          path: ./artifact
-
-      # ✅ Read image tag into env var
-      - name: Read image tag
-        id: read_tag
-        run: |
-          IMAGE_TAG=$(cat ./artifact/image-tag.txt)
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      # ✅ Set up Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.0
 
-      # ✅ Terraform Init
       - name: Terraform Init
         run: terraform init
         working-directory: Terraform
 
-      # ✅ Terraform Apply (creates or updates infrastructure)
       - name: Terraform Apply
         run: terraform apply -auto-approve
         working-directory: Terraform
 
-      # ✅ Get EC2 Public IP from Terraform output
       - name: Get EC2 Public IP from Terraform
         id: tf_output
-        env:
-          TF_LOG: ""
         run: |
           cd Terraform
           EC2_IP=$(terraform output -raw strapi_public_ip | tr -d '\r')
           echo "ec2_ip=$EC2_IP" >> $GITHUB_OUTPUT
 
-      # ✅ Deploy container on EC2
       - name: Deploy container on EC2
         run: |
+          IMAGE_TAG=latest
           EC2_USER=ubuntu
           EC2_HOST=${{ steps.tf_output.outputs.ec2_ip }}
           PEM_KEY="${{ secrets.EC2_SSH_KEY }}"
@@ -68,7 +46,6 @@ jobs:
           chmod 600 key.pem
 
           ssh -o StrictHostKeyChecking=no -i key.pem $EC2_USER@$EC2_HOST << EOF
-            echo "Deploying image navyajana/strapi-app-navya:${IMAGE_TAG} on EC2 ${EC2_HOST}"
             docker pull ${{ secrets.DOCKER_USERNAME }}/strapi-app-navya:${IMAGE_TAG}
             docker stop strapi-app-navya || true
             docker rm strapi-app-navya || true
