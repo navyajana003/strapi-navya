@@ -23,13 +23,13 @@ locals {
 
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "strapi" {
-  name              = "/ecs/strapi-navya"
+  name              = "/ecs/strapi-app-navya"
   retention_in_days = 7
 }
 
 # ALB Security Group
 resource "aws_security_group" "alb_sg" {
-  name        = "alb-sg-navya"
+  name        = "alb-sg-app-navya"
   description = "Allow HTTP access to ALB"
   vpc_id      = data.aws_vpc.default.id
 
@@ -50,7 +50,7 @@ resource "aws_security_group" "alb_sg" {
 
 # ECS Task Security Group
 resource "aws_security_group" "ecs_sg" {
-  name        = "ecs-sg-navya"
+  name        = "ecs-sg-app-navya"
   description = "Allow ALB to reach ECS tasks"
   vpc_id      = data.aws_vpc.default.id
 
@@ -71,7 +71,7 @@ resource "aws_security_group" "ecs_sg" {
 
 # ECS Cluster
 resource "aws_ecs_cluster" "strapi" {
-  name = "starpi-navya-cluster-t7"
+  name = "starpi-app-navya-cluster-t7"
 }
 
 # ECS Task Definition
@@ -103,7 +103,7 @@ resource "aws_ecs_task_definition" "strapi" {
     logConfiguration = {
       logDriver = "awslogs",
       options = {
-        awslogs-group         = "/ecs/strapi-navya"
+        awslogs-group         = "/ecs/strapi-app-navya"
         awslogs-region        = var.region
         awslogs-stream-prefix = "strapi"
       }
@@ -115,7 +115,7 @@ resource "aws_ecs_task_definition" "strapi" {
 
 # ALB
 resource "aws_lb" "strapi" {
-  name               = "strapi-alb-navya"
+  name               = "strapi-alb-app-navya"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -124,7 +124,7 @@ resource "aws_lb" "strapi" {
 
 # Target Group
 resource "aws_lb_target_group" "strapi" {
-  name        = "strapi-tg-navya"
+  name        = "strapi-tg-app-navya"
   port        = var.app_port
   protocol    = "HTTP"
   target_type = "ip"
