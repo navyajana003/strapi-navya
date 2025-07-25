@@ -50,9 +50,4 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="db_password=${{ secrets.DB_PASSWORD }}"
 
-      - name: Upload terraform.tfstate as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfstate-artifact
-          path: ./strapi-terraform-task7/terraform.tfstate
 
