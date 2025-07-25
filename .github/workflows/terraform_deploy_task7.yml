@@ -62,6 +62,6 @@ jobs:
       working-directory: terraform7
       run: terraform init
 
-    - name: Terraform Apply
+    - name: Terraform Destroy
       working-directory: terraform7
-      run: terraform apply -auto-approve
+      run: terraform destroy -auto-approve
