@@ -22,7 +22,7 @@ data "aws_availability_zones" "available" {
 
 # ECS Cluster
 resource "aws_ecs_cluster" "strapi_cluster" {
-  name = "navya-strapi-cluster-task6"
+  name = "navya-strapi-cluster"
 }
 
 # Use the provided IAM role for both task and execution roles
@@ -96,7 +96,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
 
 # Security group for ALB and ECS tasks
 resource "aws_security_group" "strapi_sg" {
-  name   = "navya-strapi-sg-task6"
+  name   = "navya-strapi-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
