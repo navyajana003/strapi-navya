@@ -51,7 +51,7 @@ jobs:
 
     - name: Override docker_image in terraform7/auto.tfvars
       run: |
-        echo 'docker_image = "${{ env.IMAGE_URI }}"' > terraform7/auto.tfvars
+        echo 'docker_image = "$(IMAGE_URI)"' > terraform7/auto.tfvars
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -61,10 +61,6 @@ jobs:
     - name: Terraform Init
       working-directory: terraform7
       run: terraform init
-
-    - name: Terraform destroy
-      working-directory: terraform7
-      run: terraform destroy -auto-approve
 
     - name: Terraform Apply
       working-directory: terraform7
