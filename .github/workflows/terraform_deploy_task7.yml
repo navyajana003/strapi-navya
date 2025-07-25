@@ -6,7 +6,7 @@ on:
       - 'terraform7/**'
       - '.github/workflows/terraform_deploy_task7.yml'
       - '**/Dockerfile'
-      - '**/package.json'
+      - '**/package.json' 
       - '**/*.ts'
       - '**/*.js' 
 
