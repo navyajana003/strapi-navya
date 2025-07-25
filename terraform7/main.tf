@@ -96,9 +96,9 @@ resource "aws_ecs_task_definition" "strapi" {
     environment = [
       { name = "PORT", value = tostring(var.app_port) },
       { name = "DATABASE_CLIENT", value = "sqlite" },
-      { name = "APP_KEYS", value = "Rd4EZ4S13CKp1JlAMzxk5A==,R4GDtWxkpBkJuK2Aq4Pv7g==,Q7df6Erx8xr6N6QFwlT4ig==,DUQwEBTNfE5qamNS1y97Xw==" },
-      { name = "API_TOKEN_SALT", value = "y6QBwgHTWetn4KoRl7MDTA==" },
-      { name = "ADMIN_JWT_SECRET", value = "IbscCljtmC/t/KWWOFYOAg==" }
+      { name = "APP_KEYS", value = "DRYhg91+J9AWJPeVLPLrmw==,gnnULHT1Gb8mVGinoo20XA==,jxDmSUT4duG7XWBZmbF+Vw==,VUQykGJOS9lgqqpZiaFQ0Q==" },
+      { name = "API_TOKEN_SALT", value = "dY2kSbUGekkQcLMKOBBQmA==" },
+      { name = "ADMIN_JWT_SECRET", value = "R2xkw4V83+r/eG+d3I67cw==" }
     ],
     logConfiguration = {
       logDriver = "awslogs",
