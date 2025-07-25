@@ -1,14 +1,17 @@
-variable "region" {
-  description = "AWS region"
-  default     = "us-east-2"
+variable "ecs_task_role_arn" {
+  description = "IAM Role ARN for ECS tasks"
+  type        = string
+  default     = "arn:aws:iam::607700977843:role/ecs-task-execution-role"
 }
 
-variable "app_port" {
-  description = "Port Strapi app listens on"
-  default     = 1337
+variable "db_password" {
+  description = "The password for the PostgreSQL admin user"
+  type        = string
+  sensitive   = true
 }
 
-variable "docker_image" {
-  description = "Docker image to deploy"
-  default     = "607700977843.dkr.ecr.us-east-2.amazonaws.com/strapi-app-navya:latest"
+variable "image_tag" {
+  description = "Docker image tag for ECS"
+  type        = string
+  default     = "latest"
 }
