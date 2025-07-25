@@ -1,0 +1,67 @@
+name: Deploy Strapi - terraform7
+
+on:
+  push:
+    paths:
+      - 'terraform7/**'
+      - '.github/workflows/terraform7.yml'
+      - 'Dockerfile'
+      - '**/package.json'
+      - '**/*.ts'
+      - '**/*.js'
+
+env:
+  AWS_REGION: us-east-2
+  ECR_REPO_NAME: strapi-app-rutik
+  ECS_CLUSTER_NAME: rutik-cluster
+  ECS_SERVICE_NAME: strapi-service
+  TASK_FAMILY: strapi-task
+  CONTAINER_NAME: strapi
+
+jobs:
+  deploy:
+    name: ECS Deploy for terraform7
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and Push Docker Image
+      id: docker
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        IMAGE_TAG=${{ github.sha }}
+        IMAGE_URI=$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:$IMAGE_TAG
+
+        docker build -t $IMAGE_URI .
+        docker push $IMAGE_URI
+
+        echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+    - name: Override docker_image in terraform7/auto.tfvars
+      run: |
+        echo 'docker_image = "${{ env.IMAGE_URI }}"' > terraform7/auto.tfvars
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.7.5
+
+    - name: Terraform Init
+      working-directory: terraform7
+      run: terraform init
+
+    - name: Terraform Apply
+      working-directory: terraform7
+      run: terraform apply -auto-approve
