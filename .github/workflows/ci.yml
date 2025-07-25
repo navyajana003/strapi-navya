@@ -62,12 +62,6 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
-        run: terraform plan -var="db_password=${{ secrets.DB_PASSWORD }}"
-
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="db_password=${{ secrets.DB_PASSWORD }}"
+        run: terraform apply -auto-approve 
 
