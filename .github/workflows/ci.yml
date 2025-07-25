@@ -43,15 +43,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.shortsha.outputs.short_sha }}
           
-  terraform-deploy:
-    name: Terraform Apply (Strapi)
-    runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ./terraform7
-
-    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
