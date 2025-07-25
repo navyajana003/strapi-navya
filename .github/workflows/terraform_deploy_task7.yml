@@ -1,5 +1,4 @@
 name: Deploy Strapi - terraform7
-
 on:
   push:
     paths:
