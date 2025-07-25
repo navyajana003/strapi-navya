@@ -12,8 +12,8 @@ on:
 
 env:
   AWS_REGION: us-east-2
-  ECR_REPO_NAME: strapi-app-rutik
-  ECS_CLUSTER_NAME: rutik-cluster
+  ECR_REPO_NAME: strapi-app-navya
+  ECS_CLUSTER_NAME: strapi-app-navya-cluster
   ECS_SERVICE_NAME: strapi-service
   TASK_FAMILY: strapi-task
   CONTAINER_NAME: strapi
