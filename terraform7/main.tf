@@ -55,7 +55,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
         },
         {
           name  = "DATABASE_URL"
-          value = "postgresql://strapiadmin:${var.db_password}@strapi-postgres-db.cbymg2mgkcu2.us-east-2.rds.amazonaws.com:5432"
+          value = "postgresql://strapiadmin:${var.db_password}@strapi-postgres-db1.cbymg2mgkcu2.us-east-2.rds.amazonaws.com:5432"
         },
         {
           name  = "APP_KEYS"
@@ -219,7 +219,7 @@ resource "aws_db_subnet_group" "strapi_db_subnet_group" {
 
 # Create RDS PostgreSQL instance
 resource "aws_db_instance" "strapi_postgres" {
-  identifier              = "strapi-postgres-db"
+  identifier              = "strapi-postgres-db1"
   allocated_storage       = 20
   engine                  = "postgres"
   engine_version          = "15.13"
