@@ -4,8 +4,8 @@ on:
   push:
     paths:
       - 'terraform7/**'
-      - '.github/workflows/terraform7.yml'
-      - 'Dockerfile'
+      - '.github/workflows/terraform_deploy_task7.yml'
+      - '**/Dockerfile'
       - '**/package.json'
       - '**/*.ts'
       - '**/*.js'
