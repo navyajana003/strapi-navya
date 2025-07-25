@@ -20,7 +20,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: ./strapi-terraform-task7
+        working-directory: ./terraform7
 
     steps:
       - name: Checkout code
