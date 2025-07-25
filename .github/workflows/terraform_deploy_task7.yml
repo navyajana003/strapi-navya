@@ -64,4 +64,4 @@ jobs:
 
     - name: Terraform Apply
       working-directory: terraform7
-      run: terraform apply -auto-approve
+      run: terraform apply -auto-approve 
