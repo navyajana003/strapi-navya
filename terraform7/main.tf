@@ -2,238 +2,212 @@ provider "aws" {
   region = "us-east-2"
 }
 
-# Use default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get default subnets in the default VPC
 data "aws_subnets" "default" {
   filter {
-    name   = "vpc-id"
+    name = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
 }
 
-# Get availability zones (useful for ALB, ECS Fargate)
-data "aws_availability_zones" "available" {
-  state = "available"
-}
+# Security groups for Load Balancer, ECS and EC2 postgres --------------------------
 
-# ECS Cluster
-resource "aws_ecs_cluster" "strapi_cluster" {
-  name = "navya-strapi-cluster"
-}
-
-# Use the provided IAM role for both task and execution roles
-
-resource "aws_ecs_task_definition" "strapi_task" {
-  family                   = "navya-strapi-task"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"
-  memory                   = "1024"
-  network_mode             = "awsvpc"
-  execution_role_arn       = var.ecs_task_role_arn
-  task_role_arn            = var.ecs_task_role_arn
-
-  container_definitions = jsonencode([
-    {
-      name      = "strapi"
-      image     = "607700977843.dkr.ecr.us-east-2.amazonaws.com/navya-strapi-ecr:${var.image_tag}"
-      portMappings = [
-        {
-          containerPort = 1337
-          hostPort      = 1337
-          protocol      = "tcp"
-        }
-      ],
-      essential = true,
-      environment = [
-        {
-          name  = "NODE_ENV"
-          value = "production"
-        },
-        {
-          name  = "DATABASE_URL"
-          value = "postgresql://strapiadmin:${var.db_password}@strapi-postgres-db1.cbymg2mgkcu2.us-east-2.rds.amazonaws.com:5432"
-        },
-        {
-          name  = "APP_KEYS"
-          value = "DRYhg91+J9AWJPeVLPLrmw==,gnnULHT1Gb8mVGinoo20XA==,jxDmSUT4duG7XWBZmbF+Vw==,VUQykGJOS9lgqqpZiaFQ0Q=="
-        },
-        {
-          name  = "JWT_SECRET"
-          value = "w61mWVzwQi42K3+Z5sE7ng=="
-        },
-        {
-          name  = "API_TOKEN_SALT"
-          value = "dY2kSbUGekkQcLMKOBBQmA=="
-        },
-        {
-          name  = "ADMIN_JWT_SECRET"
-          value = "R2xkw4V83+r/eG+d3I67cw=="
-        },
-        {
-          name  = "TRANSFER_TOKEN_SALT"
-          value = "idyeljeNUcJ3TRhqT0w5BA=="
-        },
-        {
-          name  = "ENCRYPTION_KEY"
-          value = "Vg16imt2mmaj109xNF14xg=="
-        },
-        {
-          name  = "FLAG_NPS"
-          value = "true"
-        },
-        {
-          name  = "FLAG_PROMOTE_EE"
-          value = "true"
-        }
-      ]
-    }
-  ])
-}
-
-# Security group for ALB and ECS tasks
-resource "aws_security_group" "strapi_sg" {
-  name   = "navya-strapi-sg"
+resource "aws_security_group" "alb_sg" {
+  name = "navya-strapi-alb-sg"
+  description = "Allow HTTP access"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
-    description = "Allow HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "Allow container port"
-    from_port   = 1337
-    to_port     = 1337
-    protocol    = "tcp"
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "ecs_sg" {
+  name = "navya-ecs-sg"
+  description = "Allow ALB to reach ECS"
+  vpc_id = data.aws_vpc.default.id
+
+  ingress {
+    from_port = 1337
+    to_port = 1337
+    protocol = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "postgres_sg" {
+  name = "navya-postgres-sg"
+  description = "Allow ECS to reach postgres db"
+  vpc_id = data.aws_vpc.default.id
+
+  ingress {
+    from_port = 5432
+    to_port = 5432
+    protocol = "tcp"
+    security_groups = [aws_security_group.ecs_sg.id]
   }
 
   ingress {
-    description = "Postgres access"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# Load Balancer
+# Application Load Balancer --------------------------------------------------------
+
 resource "aws_lb" "strapi_alb" {
-  name               = "navya-strapi-alb"
-  internal           = false
+  name = "navya-strapi-alb"
+  internal = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.strapi_sg.id]
+  security_groups = [aws_security_group.alb_sg.id]
   subnets = [
-  "subnet-024126fd1eb33ec08", # us-east-2a
-  "subnet-03e27b60efa8df9f0"  # us-east-2b
-]
+    "subnet-0f768008c6324831f",
+    "subnet-0cc2ddb32492bcc41"
+  ]
+
+  enable_deletion_protection = false
 }
 
-# Target group for ECS tasks
 resource "aws_lb_target_group" "strapi_tg" {
-  name        = "navya-strapi-tg"
-  port        = 1337
-  protocol    = "HTTP"
-  target_type = "ip"
-  vpc_id      = data.aws_vpc.default.id
+  name = "navya-strapi-tg"
+  port = 1337
+  protocol = "HTTP"
+  vpc_id = data.aws_vpc.default.id
+
   health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
+    path = "/"
+    interval = 30
+    timeout = 5
+    healthy_threshold = 2
     unhealthy_threshold = 2
-    matcher             = "200-399"
+    matcher = "200-399"
   }
+
+  target_type = "ip"
 }
 
-# Listener to forward HTTP to target group
 resource "aws_lb_listener" "strapi_listener" {
   load_balancer_arn = aws_lb.strapi_alb.arn
-  port              = 80
-  protocol          = "HTTP"
+  port = 80
+  protocol = "HTTP"
 
   default_action {
-    type             = "forward"
+    type = "forward"
     target_group_arn = aws_lb_target_group.strapi_tg.arn
   }
 }
 
-############################################
-## ECS Service
-resource "aws_ecs_service" "strapi_service" {
-  name            = "navya-strapi-service"
-  cluster         = aws_ecs_cluster.strapi_cluster.id
-  launch_type     = "FARGATE"
-  desired_count   = 1
-  task_definition = aws_ecs_task_definition.strapi_task.arn
+output "alb_url" {
+  value = aws_lb.strapi_alb.dns_name
+}
+
+# ECS ------------------------------------------------------------------------------
+
+resource "aws_ecs_cluster" "strapi_cluster" {
+  name = "navya-strapi-cluster"
+}
+
+resource "aws_ecs_task_definition" "strapi" {
+  family = "navya-strapi-task"
+  requires_compatibilities = ["FARGATE"]
+  network_mode = "awsvpc"
+  cpu = "512"
+  memory = "1024"
+  execution_role_arn = var.ecs_executation_role
+
+  container_definitions = templatefile("${path.module}/ecs_container_definitions.tmpl", {
+    HOST = "0.0.0.0"
+    PORT = "1337"
+    ecr_image = var.ecr_image
+    APP_KEYS = var.APP_KEYS
+    API_TOKEN_SALT = var.API_TOKEN_SALT
+    ADMIN_JWT_SECRET = var.ADMIN_JWT_SECRET
+    TRANSFER_TOKEN_SALT = var.TRANSFER_TOKEN_SALT
+    ENCRYPTION_KEY = var.ENCRYPTION_KEY
+    JWT_SECRET = var.JWT_SECRET
+    DATABASE_CLIENT = "postgres"
+    DATABASE_HOST = aws_instance.postgres_ec2.private_ip
+    DATABASE_PORT = "5432"
+    DATABASE_NAME = var.DATABASE_NAME
+    DATABASE_USERNAME = var.DATABASE_USERNAME
+    DATABASE_PASSWORD = var.DATABASE_PASSWORD
+    DATABASE_SSL = "false"
+  })
+}
+
+resource "aws_ecs_service" "strapi" {
+  name = "navya-strapi-service"
+  cluster = aws_ecs_cluster.strapi_cluster.id
+  launch_type = "FARGATE"
+  task_definition = aws_ecs_task_definition.strapi.arn
+  desired_count = 1
 
   network_configuration {
-    subnets = [
-  "subnet-024126fd1eb33ec08", # us-east-2a
-  "subnet-03e27b60efa8df9f0"  # us-east-2b
-]
-
-    security_groups = [aws_security_group.strapi_sg.id]
+    subnets = data.aws_subnets.default.ids
     assign_public_ip = true
+    security_groups = [aws_security_group.ecs_sg.id]
   }
+
+  depends_on = [
+    aws_instance.postgres_ec2,
+    aws_lb.strapi_alb,
+    aws_lb_target_group.strapi_tg,
+    aws_lb_listener.strapi_listener
+  ]
 
   load_balancer {
     target_group_arn = aws_lb_target_group.strapi_tg.arn
-    container_name   = "strapi"
-    container_port   = 1337
-  }
-
-  depends_on = [aws_lb_listener.strapi_listener]
-}
-
-# Create RDS subnet group
-resource "aws_db_subnet_group" "strapi_db_subnet_group" {
-  name       = "navya-strapi-db-subnet-group"
-  subnet_ids = [
-    "subnet-024126fd1eb33ec08", # us-east-2a
-    "subnet-03e27b60efa8df9f0"  # us-east-2b
-  ]
-  tags = {
-    Name = "navya-strapi-db-subnet-group"
-  }
-
-  lifecycle {
-    ignore_changes = [subnet_ids]
+    container_name = "strapi"
+    container_port = 1337
   }
 }
 
-# Create RDS PostgreSQL instance
-resource "aws_db_instance" "strapi_postgres" {
-  identifier              = "strapi-postgres-db1"
-  allocated_storage       = 20
-  engine                  = "postgres"
-  engine_version          = "15.13"
-  instance_class          = "db.t3.micro"
-  username                = "strapiadmin"
-  password                = "StrapiSecure123!"
-  db_subnet_group_name    = aws_db_subnet_group.strapi_db_subnet_group.name
-  vpc_security_group_ids  = [aws_security_group.strapi_sg.id]
-  skip_final_snapshot     = true
-  publicly_accessible     = true
-  multi_az                = false
-  port                    = 5432
+# EC2 postgres database ------------------------------------------------------------
+
+resource "aws_instance" "postgres_ec2" {
+  ami = "ami-0d1b5a8c13042c939" 
+  instance_type = "t3.micro"
+  subnet_id = data.aws_subnets.default.ids[0]
+  associate_public_ip_address = true
+  vpc_security_group_ids = [aws_security_group.postgres_sg.id]
+
+  user_data = templatefile("${path.module}/../User_data2.sh", {
+    DATABASE_NAME = var.DATABASE_NAME
+    DATABASE_USERNAME = var.DATABASE_USERNAME
+    DATABASE_PASSWORD = var.DATABASE_PASSWORD
+  })
 
   tags = {
-    Name = "navya-StrapiPostgresDB"
+    Name = "navya-strapi"
   }
 }
+
