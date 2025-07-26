@@ -1,14 +1,15 @@
-# Stage 1: Build 
-FROM node:20-alpine AS builder
+# Builder stage
+FROM node:18-alpine as builder
 WORKDIR /app
-COPY . .
+COPY package*.json ./
 RUN npm install
-RUN yarn build
+COPY . .
+RUN npm run build
 
-# Stage 2: Deploy
-FROM node:20-alpine
+# Runtime stage
+FROM node:18-alpine
 WORKDIR /app
-COPY --from=builder /app ./
+COPY --from=builder /app /app
+RUN npm install --production
 EXPOSE 1337
-CMD ["sh", "-c", "until nc -z -v -w30 $DATABASE_HOST 5432; do echo 'Waiting for Postgres...'; sleep 5; done; yarn start"]
-
+CMD ["npm", "run", "start"] 

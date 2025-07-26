@@ -1,5 +1,5 @@
 {
-  "name": "my-app",
+  "name": "my-strapi-app",
   "version": "0.1.0",
   "private": true,
   "description": "A Strapi application",
@@ -18,7 +18,7 @@
     "@strapi/plugin-cloud": "5.18.0",
     "@strapi/plugin-users-permissions": "5.18.0",
     "@strapi/strapi": "5.18.0",
-    "pg": "^8.16.3",
+    "better-sqlite3": "11.3.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
@@ -35,7 +35,7 @@
     "npm": ">=6.0.0"
   },
   "strapi": {
-    "uuid": "0f8e76b1-5c5b-4e49-a37c-c3752cad9f81",
-    "installId": "f2362649dc2928f09e71444eb0e015be35a02ab25addf28a415af665be62b249"
+    "uuid": "1ed5328f-722a-4d82-9c78-4398a82089ad",
+    "installId": "71660458a43bba4e7ed02ea6a5c3e8a5d1b8c0f4b860affb06ebba2e5bce7941"
   }
 }

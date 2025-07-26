@@ -1,140 +1,30 @@
-############################
-# OS X
-############################
+# === Terraform ===
+*.tfstate
+*.tfstate.backup
+.terraform/
+terraform.tfvars
+terraform/strapi-key.pem
 
+# === Node.js / Strapi ===
+node_modules/
+.cache/
+build/
+dist/
+.tmp/
+.env.* 
+*.log
+
+# === Docker ===
+*.local
+docker-compose.override.yml
+image-tag.txt
+
+# === VSCode / Editors ===
+.vscode/
+.idea/
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon
-.Spotlight-V100
-.Trashes
-._*
+*.swp
 
-
-############################
-# Linux
-############################
-
-*~
-
-
-############################
-# Windows
-############################
-
+# === OS Files ===
 Thumbs.db
 ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-*.cab
-*.msi
-*.msm
-*.msp
-
-
-############################
-# Packages
-############################
-
-*.7z
-*.csv
-*.dat
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.seed
-*.so
-*.swo
-*.swp
-*.swn
-*.swm
-*.out
-*.pid
-
-
-############################
-# Logs and databases
-############################
-
-.tmp
-*.log
-*.sql
-*.sqlite
-*.sqlite3
-
-
-############################
-# Misc.
-############################
-
-*#
-ssl
-.idea
-nbproject
-public/uploads/*
-!public/uploads/.gitkeep
-.tsbuildinfo
-.eslintcache
-
-############################
-# Node.js
-############################
-
-lib-cov
-lcov.info
-pids
-logs
-results
-node_modules
-.node_history
-
-############################
-# Package managers
-############################
-
-.yarn/*
-!.yarn/cache
-!.yarn/unplugged
-!.yarn/patches
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-.pnp.*
-yarn-error.log
-
-############################
-# Tests
-############################
-
-coverage
-
-############################
-# Strapi
-############################
-
-.env
-license.txt
-exports
-.strapi
-dist
-build
-.strapi-updater.json
-.strapi-cloud.json
-terraform/.*
-terraform/terraform.tfstate
-terraform/terraform.tfstate.backup
-terraform/terraform.tfvars
-terraform/terraform.tfvars.json
-terraform/terraform.tfstate.d/
-terraform/.terraform.lock.hcl
-terraform/.terraform-version
-terraform/.terraform    
